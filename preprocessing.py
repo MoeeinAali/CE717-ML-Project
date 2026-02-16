@@ -12,7 +12,7 @@ load_dotenv()
 DATA_DIR = "data"
 VECTOR_DB_DIR = "vector_store"
 
-EMBEDDING_MODEL_NAME = "text-embedding-3-small" # text-embedding-3-large 
+EMBEDDING_MODEL_NAME = "text-embedding-3-large"
 
 
 def load_documents(data_dir):
@@ -46,30 +46,14 @@ def load_documents(data_dir):
 
 
 def split_documents(docs):
-    headers_to_split_on = [
-        ("#", "Header 1"),
-        ("##", "Header 2"),
-        ("###", "Header 3"),
-    ]
-    markdown_splitter = MarkdownHeaderTextSplitter(
-        headers_to_split_on=headers_to_split_on)
-
-    md_header_splits = []
-    print("Splitting documents by headers...")
-    for doc in docs:
-        splits = markdown_splitter.split_text(doc.page_content)
-        for split in splits:
-            split.metadata.update(doc.metadata)
-            md_header_splits.append(split)
-
     text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
         model_name="gpt-4",
-        chunk_size=300,
-        chunk_overlap=50,
+        chunk_size=1000,
+        chunk_overlap=250,
         separators=["\n\n", "\n", " ", ""]
     )
 
-    final_splits = text_splitter.split_documents(md_header_splits)
+    final_splits = text_splitter.split_documents(docs)
     print(f"Total chunks created: {len(final_splits)}")
     return final_splits
 

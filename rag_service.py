@@ -8,7 +8,7 @@ load_dotenv()
 
 
 class RAGService(object):
-    def __init__(self, vector_db_path="vector_store", embedding_model="text-embedding-3-small", score_threshold=0.2, k=3):
+    def __init__(self, vector_db_path="vector_store", embedding_model="text-embedding-3-large", score_threshold=0.1, k=3):
         self.vector_db_path = vector_db_path
         self.embedding_model_name = embedding_model
 
@@ -84,11 +84,11 @@ class RAGService(object):
         docs = self._retrieve_documents(query)
 
         if not docs:
-            return None, "No relevant information found in the rules."
+            return None, []
 
         context_str = self._format_docs_for_llm(docs)
 
-        system_template = f"""تو هوش مصنوعی پاسخگو به سوالات آموزشی دانشگاه صنعتی شریف هستی.
+        system_instruction = f"""تو هوش مصنوعی پاسخگو به سوالات آموزشی دانشگاه صنعتی شریف هستی.
                             وظیفه تو پاسخ دادن به سوالات دانشجوها *صرفاً* بر اساس متون زیر است.
 
                             قوانین اکید:
@@ -99,11 +99,8 @@ class RAGService(object):
 
                             متون قوانین (Context):
                             {context_str}
-
-                            سوال دانشجو:
-                            {query}
                             """
-        return system_template, docs
+        return system_instruction, docs
 
 
 if __name__ == "__main__":
