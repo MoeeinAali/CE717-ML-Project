@@ -1,0 +1,122 @@
+import os
+import faiss
+from dotenv import load_dotenv
+from langchain_community.vectorstores import FAISS
+from langchain_openai import OpenAIEmbeddings
+
+load_dotenv()
+
+
+class RAGService(object):
+    def __init__(self, vector_db_path="vector_store", embedding_model="text-embedding-3-small", score_threshold=0.2, k=3):
+        self.vector_db_path = vector_db_path
+        self.embedding_model_name = embedding_model
+
+        self.vector_db = None
+        self.retriever = None
+        self.embeddings = None
+        self.score_threshold = score_threshold
+        self.k = k
+
+        self._initialize_system()
+
+    def _initialize_system(self):
+        try:
+            print(f"Loading Embedding Model: {self.embedding_model_name}...")
+            self.embeddings = OpenAIEmbeddings(
+                model=self.embedding_model_name,
+                check_embedding_ctx_length=False
+            )
+
+            if os.path.exists(self.vector_db_path):
+                print(
+                    f"Loading FAISS Vector Store from {self.vector_db_path}...")
+                self.vector_db = FAISS.load_local(
+                    self.vector_db_path,
+                    self.embeddings,
+                    allow_dangerous_deserialization=True
+                )
+
+                self.retriever = self.vector_db.as_retriever(
+                    search_type="similarity_score_threshold",
+                    search_kwargs={
+                        "score_threshold": self.score_threshold, "k": self.k}
+                )
+                print("RAG Service Initialized Successfully.")
+            else:
+                print(
+                    f"Error: Vector store not found at {self.vector_db_path}. Please run preprocessing.py first.")
+
+        except Exception as e:
+            print(f"Failed to initialize RAG Service: {e}")
+
+    def _retrieve_documents(self, query):
+        if not self.retriever:
+            print("Retriever not initialized.")
+            return []
+
+        try:
+            docs = self.retriever.invoke(query)
+
+            if not docs:
+                print("No relevant documents found (similarity too low).")
+                return []
+
+            return docs
+
+        except Exception as e:
+            print(f"Error during retrieval: {e}")
+            return []
+
+    def _format_docs_for_llm(self, docs):
+        formatted_context = []
+
+        for i, doc in enumerate(docs):
+            source = doc.metadata.get("title", "Unknown Source")
+            content = doc.page_content.replace("\n", " ").strip()
+
+            formatted_text = f"[Source {i+1}: {source}]\n{content}\n"
+            formatted_context.append(formatted_text)
+
+        return "\n".join(formatted_context)
+
+    def generate_augmented_prompt(self, query):
+        docs = self._retrieve_documents(query)
+
+        if not docs:
+            return None, "No relevant information found in the rules."
+
+        context_str = self._format_docs_for_llm(docs)
+
+        system_template = f"""تو هوش مصنوعی پاسخگو به سوالات آموزشی دانشگاه صنعتی شریف هستی.
+                            وظیفه تو پاسخ دادن به سوالات دانشجوها *صرفاً* بر اساس متون زیر است.
+
+                            قوانین اکید:
+                            1. اگر پاسخ سوال در متن‌های زیر نیست، بگو "در قوانین موجود جوابی برای این سوال پیدا نکردم".
+                            2. از خودت قانونی نساز و حدس نزن.
+                            3. پاسخ را محترمانه و دقیق به زبان فارسی بده.
+                            4. اگر لازم است، به نام آیین‌نامه یا قانون ارجاع بده.
+
+                            متون قوانین (Context):
+                            {context_str}
+
+                            سوال دانشجو:
+                            {query}
+                            """
+        return system_template, docs
+
+
+if __name__ == "__main__":
+    service = RAGService()
+    test_query = "تعداد واحد دوره فرعی چند تاست؟"
+    prompt, retrieved_docs = service.generate_augmented_prompt(test_query)
+
+    if prompt:
+        print("\n--- Generated Prompt Preview ---")
+        print(prompt)
+
+        print(f"\n--- Retrieved {len(retrieved_docs)} Sources ---")
+        for d in retrieved_docs:
+            print(f"- {d.metadata.get('title')}")
+    else:
+        print(retrieved_docs)
