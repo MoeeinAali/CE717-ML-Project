@@ -1,3 +1,9 @@
 requests
 beautifulsoup4
 markdownify
+langchain
+langchain-community
+langchain-openai
+faiss-cpu
+tiktoken
+python-dotenv
