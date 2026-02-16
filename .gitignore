@@ -5,3 +5,4 @@ test.ipynb
 chunks_inspection.txt
 
 __pycache__/
+chat_history.db

@@ -1,65 +1,45 @@
-from fastapi import FastAPI, HTTPException, Body, Depends
+from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
 from typing import List, Optional, Dict
 import uuid
-import time
-from datetime import datetime
-from sqlalchemy import create_engine, Column, Integer, String, Text, ForeignKey, DateTime
-from sqlalchemy.orm import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship, Session
+from sqlalchemy.orm import Session
 from langchain_ollama import ChatOllama
+from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+
 from rag_service import RAGService
-
-SQLALCHEMY_DATABASE_URL = "sqlite:///./chat_history.db"
-
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
+from database import DBChatSession, DBChatMessage, get_db, init_db
+from config import (
+    LLM_PROVIDER, OLLAMA_MODEL, OLLAMA_BASE_URL, 
+    OPENAI_API_KEY, OPENAI_MODEL, LLM_TEMPERATURE
 )
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-Base = declarative_base()
 
-class DBChatSession(Base):
-    __tablename__ = "sessions"
-    id = Column(String, primary_key=True, index=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    messages = relationship("DBChatMessage", back_populates="session", cascade="all, delete-orphan")
-
-class DBChatMessage(Base):
-    __tablename__ = "messages"
-    id = Column(Integer, primary_key=True, index=True)
-    session_id = Column(String, ForeignKey("sessions.id"))
-    role = Column(String) # 'user' or 'ai'
-    content = Column(Text)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    session = relationship("DBChatSession", back_populates="messages")
-
-Base.metadata.create_all(bind=engine)
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+init_db()
 
 app = FastAPI(
-    title="Sharif University Educational RAG Chatbot",
+    title="SharifAC RAG Chatbot",
     description="A RAG-based chatbot for answering questions about Sharif University educational regulations.",
     version="1.0.0"
 )
 
-# Initialize RAG Service
-# Increased k to 5 as per prompt.md recommendation
 rag_service = RAGService()
 
-# Initialize LLM (Ollama)
-# Ensure you have 'ollama' running with 'qwen2.5:7b-instruct' or your preferred model
-llm = ChatOllama(
-    model="qwen2.5:7b-instruct",
-    temperature=0.3, 
-    base_url="http://127.0.0.1:11434"
-)
+if LLM_PROVIDER == "openai":
+    if not OPENAI_API_KEY:
+        raise ValueError("OPENAI_API_KEY is required for OpenAI provider.")
+    print(f"Initializing OpenAI LLM with model: {OPENAI_MODEL}")
+    llm = ChatOpenAI(
+        model=OPENAI_MODEL,
+        temperature=LLM_TEMPERATURE,
+        api_key=OPENAI_API_KEY
+    )
+else:
+    print(f"Initializing Ollama LLM with model: {OLLAMA_MODEL}")
+    llm = ChatOllama(
+        model=OLLAMA_MODEL,
+        temperature=LLM_TEMPERATURE, 
+        base_url=OLLAMA_BASE_URL
+    )
 
 class ChatRequest(BaseModel):
     query: str
@@ -69,7 +49,7 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     response: str
     session_id: str
-    sources: List[str]
+    sources: List[Dict]
 
 
 @app.get("/health")
@@ -81,7 +61,6 @@ async def root() -> bool:
 async def chat_endpoint(request: ChatRequest, db: Session = Depends(get_db)):
     session_id = request.session_id if request.session_id else str(uuid.uuid4())
 
-    # Check if session exists, create if not
     db_session = db.query(DBChatSession).filter(DBChatSession.id == session_id).first()
     if not db_session:
         db_session = DBChatSession(id=session_id)
@@ -89,34 +68,28 @@ async def chat_endpoint(request: ChatRequest, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(db_session)
 
-    # 1. Retrieve relevant documents and system instruction
     system_instruction, docs = rag_service.generate_augmented_prompt(
         request.query)
 
-    if not system_instruction:
-        # Fallback if no documents found
+    db_messages = db.query(DBChatMessage)\
+        .filter(DBChatMessage.session_id == session_id)\
+        .order_by(DBChatMessage.created_at.desc())\
+        .limit(6)\
+        .all()
+    
+    has_history = len(db_messages) > 0
+
+    if not system_instruction and not has_history:
         response_text = "در قوانین موجود جوابی برای این سوال پیدا نکردم."
         sources = []
     else:
-        # 2. Construct Messages for LLM
         messages = []
 
-        # Add the System Message (RAG Context)
-        messages.append(SystemMessage(content=system_instruction))
+        if system_instruction:
+            messages.append(SystemMessage(content=system_instruction))
+        else:
+            messages.append(SystemMessage(content="تو یک دستیار هوشمند هستی. به سوالات کاربر پاسخ بده."))
 
-        # Add History (retrieve from DB, convert to LangChain messages)
-        # Sort by id or created_at to ensure order
-        # Fetch last 6 messages
-        # Note: We query all messages for this session, sort by date, take last N
-        # Ideally, we should order by id or created_at DESC, limit N, then reverse.
-        
-        db_messages = db.query(DBChatMessage)\
-            .filter(DBChatMessage.session_id == session_id)\
-            .order_by(DBChatMessage.created_at.desc())\
-            .limit(6)\
-            .all()
-        
-        # Reverse to get chronological order
         db_messages = db_messages[::-1]
         
         for msg in db_messages:
@@ -125,23 +98,20 @@ async def chat_endpoint(request: ChatRequest, db: Session = Depends(get_db)):
             elif msg.role == 'ai':
                 messages.append(AIMessage(content=msg.content))
 
-        # Add current user query
         messages.append(HumanMessage(content=request.query))
 
-        # 3. Generate response
         try:
             response_message = llm.invoke(messages)
             response_text = response_message.content
-            # Extract sources
-            sources = [doc.metadata.get("source_file", "Unknown")
-                       for doc in docs]
-            # Deduplicate sources
-            sources = list(set(sources))
+            if docs:
+                 sources = [doc.metadata for doc in docs]
+            else:
+                 sources = []
+            
         except Exception as e:
             raise HTTPException(
                 status_code=500, detail=f"LLM Generation Error: {str(e)}")
 
-    # Update History in DB
     user_msg = DBChatMessage(session_id=session_id, role='user', content=request.query)
     ai_msg = DBChatMessage(session_id=session_id, role='ai', content=response_text)
     

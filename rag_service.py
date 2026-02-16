@@ -3,12 +3,13 @@ import faiss
 from dotenv import load_dotenv
 from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings
+from config import RAG_VECTOR_DB_PATH, RAG_EMBEDDING_MODEL, RAG_SCORE_THRESHOLD, RAG_K
 
 load_dotenv()
 
 
 class RAGService(object):
-    def __init__(self, vector_db_path="vector_store", embedding_model="text-embedding-3-large", score_threshold=0.1, k=3):
+    def __init__(self, vector_db_path=RAG_VECTOR_DB_PATH, embedding_model=RAG_EMBEDDING_MODEL, score_threshold=RAG_SCORE_THRESHOLD, k=RAG_K):
         self.vector_db_path = vector_db_path
         self.embedding_model_name = embedding_model
 
@@ -61,7 +62,6 @@ class RAGService(object):
             if not docs:
                 print("No relevant documents found (similarity too low).")
                 return []
-
             return docs
 
         except Exception as e:
