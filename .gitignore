@@ -3,3 +3,5 @@ venv/
 prompt.md
 test.ipynb
 chunks_inspection.txt
+
+__pycache__/

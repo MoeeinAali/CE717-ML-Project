@@ -12,7 +12,7 @@ load_dotenv()
 DATA_DIR = "data"
 VECTOR_DB_DIR = "vector_store"
 
-EMBEDDING_MODEL_NAME = "text-embedding-3-small"
+EMBEDDING_MODEL_NAME = "text-embedding-3-small" # text-embedding-3-large 
 
 
 def load_documents(data_dir):
