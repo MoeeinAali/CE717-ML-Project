@@ -99,6 +99,8 @@ class RAGService(object):
 
                             متون قوانین (Context):
                             {context_str}
+                            
+                            حالا به سوال زیر پاسخ بده:
                             """
         return system_instruction, docs
 

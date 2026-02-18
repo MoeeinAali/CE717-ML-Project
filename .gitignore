@@ -1,8 +1,25 @@
 venv/
 .env
 prompt.md
-test.ipynb
 chunks_inspection.txt
+*.db
 
 __pycache__/
 chat_history.db
+.idea/
+.vscode/
+.DS_Store
+*.pyc
+*.pyo
+*.log
+*.bak
+*.swp
+*.tmp
+*.egg-info/
+dist/
+build/
+*.egg
+*.tar.gz
+*.zip
+*.env
+*.venv  
