@@ -4,6 +4,9 @@ from dotenv import load_dotenv
 from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings
 from config import RAG_VECTOR_DB_PATH, RAG_EMBEDDING_MODEL, RAG_SCORE_THRESHOLD, RAG_K
+from logger import get_logger
+
+logger = get_logger(__name__)
 
 load_dotenv()
 
@@ -23,14 +26,14 @@ class RAGService(object):
 
     def _initialize_system(self):
         try:
-            print(f"Loading Embedding Model: {self.embedding_model_name}...")
+            logger.info(f"Loading Embedding Model: {self.embedding_model_name}...")
             self.embeddings = OpenAIEmbeddings(
                 model=self.embedding_model_name,
                 check_embedding_ctx_length=False
             )
 
             if os.path.exists(self.vector_db_path):
-                print(
+                logger.info(
                     f"Loading FAISS Vector Store from {self.vector_db_path}...")
                 self.vector_db = FAISS.load_local(
                     self.vector_db_path,
@@ -43,29 +46,29 @@ class RAGService(object):
                     search_kwargs={
                         "score_threshold": self.score_threshold, "k": self.k}
                 )
-                print("RAG Service Initialized Successfully.")
+                logger.info("RAG Service Initialized Successfully.")
             else:
-                print(
+                logger.error(
                     f"Error: Vector store not found at {self.vector_db_path}. Please run preprocessing.py first.")
 
         except Exception as e:
-            print(f"Failed to initialize RAG Service: {e}")
+            logger.error(f"Failed to initialize RAG Service: {e}")
 
     def _retrieve_documents(self, query):
         if not self.retriever:
-            print("Retriever not initialized.")
+            logger.warning("Retriever not initialized.")
             return []
 
         try:
             docs = self.retriever.invoke(query)
 
             if not docs:
-                print("No relevant documents found (similarity too low).")
+                logger.info("No relevant documents found (similarity too low).")
                 return []
             return docs
 
         except Exception as e:
-            print(f"Error during retrieval: {e}")
+            logger.error(f"Error during retrieval: {e}")
             return []
 
     def _format_docs_for_llm(self, docs):

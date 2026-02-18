@@ -13,33 +13,65 @@ from config import (
     LLM_PROVIDER, OLLAMA_MODEL, OLLAMA_BASE_URL, 
     OPENAI_API_KEY, OPENAI_MODEL, LLM_TEMPERATURE
 )
+from chat_service import generate_chat_response
+from telegram_bot import create_bot_app
+from contextlib import asynccontextmanager
+from logger import get_logger
+
+logger = get_logger(__name__)
 
 init_db()
 
-app = FastAPI(
-    title="SharifAC RAG Chatbot",
-    description="A RAG-based chatbot for answering questions about Sharif University educational regulations.",
-    version="1.0.0"
-)
-
+# Initialize Services Globaly
 rag_service = RAGService()
+llm = None
+bot_app = None
 
+# Initialize LLM
 if LLM_PROVIDER == "openai":
     if not OPENAI_API_KEY:
         raise ValueError("OPENAI_API_KEY is required for OpenAI provider.")
-    print(f"Initializing OpenAI LLM with model: {OPENAI_MODEL}")
+    logger.info(f"Initializing OpenAI LLM with model: {OPENAI_MODEL}")
     llm = ChatOpenAI(
         model=OPENAI_MODEL,
         temperature=LLM_TEMPERATURE,
         api_key=OPENAI_API_KEY
     )
 else:
-    print(f"Initializing Ollama LLM with model: {OLLAMA_MODEL}")
+    logger.info(f"Initializing Ollama LLM with model: {OLLAMA_MODEL}")
     llm = ChatOllama(
         model=OLLAMA_MODEL,
         temperature=LLM_TEMPERATURE, 
         base_url=OLLAMA_BASE_URL
     )
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Initialize Bot
+    global bot_app
+    bot_app = create_bot_app(rag_service, llm)
+    
+    if bot_app:
+        logger.info("Starting Telegram Bot...")
+        await bot_app.initialize()
+        await bot_app.start()
+        await bot_app.updater.start_polling()
+    
+    yield
+    
+    # Shutdown
+    if bot_app:
+        logger.info("Stopping Telegram Bot...")
+        await bot_app.updater.stop()
+        await bot_app.stop()
+        await bot_app.shutdown()
+
+app = FastAPI(
+    title="SharifAC RAG Chatbot",
+    description="A RAG-based chatbot for answering questions about Sharif University educational regulations.",
+    version="1.0.0",
+    lifespan=lifespan
+)
 
 class ChatRequest(BaseModel):
     query: str
@@ -61,63 +93,16 @@ async def root() -> bool:
 async def chat_endpoint(request: ChatRequest, db: Session = Depends(get_db)):
     session_id = request.session_id if request.session_id else str(uuid.uuid4())
 
-    db_session = db.query(DBChatSession).filter(DBChatSession.id == session_id).first()
-    if not db_session:
-        db_session = DBChatSession(id=session_id)
-        db.add(db_session)
-        db.commit()
-        db.refresh(db_session)
-
-    system_instruction, docs = rag_service.generate_augmented_prompt(
-        request.query)
-
-    db_messages = db.query(DBChatMessage)\
-        .filter(DBChatMessage.session_id == session_id)\
-        .order_by(DBChatMessage.created_at.desc())\
-        .limit(6)\
-        .all()
-    
-    has_history = len(db_messages) > 0
-
-    if not system_instruction and not has_history:
-        response_text = "در قوانین موجود جوابی برای این سوال پیدا نکردم."
-        sources = []
-    else:
-        messages = []
-
-        if system_instruction:
-            messages.append(SystemMessage(content=system_instruction))
-        else:
-            messages.append(SystemMessage(content="تو یک دستیار هوشمند هستی. به سوالات کاربر پاسخ بده."))
-
-        db_messages = db_messages[::-1]
-        
-        for msg in db_messages:
-            if msg.role == 'user':
-                messages.append(HumanMessage(content=msg.content))
-            elif msg.role == 'ai':
-                messages.append(AIMessage(content=msg.content))
-
-        messages.append(HumanMessage(content=request.query))
-
-        try:
-            response_message = llm.invoke(messages)
-            response_text = response_message.content
-            if docs:
-                 sources = [doc.metadata for doc in docs]
-            else:
-                 sources = []
-            
-        except Exception as e:
-            raise HTTPException(
-                status_code=500, detail=f"LLM Generation Error: {str(e)}")
-
-    user_msg = DBChatMessage(session_id=session_id, role='user', content=request.query)
-    ai_msg = DBChatMessage(session_id=session_id, role='ai', content=response_text)
-    
-    db.add(user_msg)
-    db.add(ai_msg)
-    db.commit()
+    try:
+        response_text, sources = await generate_chat_response(
+            query=request.query,
+            session_id=session_id,
+            db=db,
+            rag_service=rag_service,
+            llm=llm
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
     return ChatResponse(
         response=response_text,

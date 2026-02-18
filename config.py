@@ -18,6 +18,9 @@ OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
 LLM_TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.3"))
 
+# Telegram Bot Token
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+
 # RAG Configuration
 RAG_K = int(os.getenv("RAG_K", "5"))
 RAG_VECTOR_DB_PATH = os.getenv("RAG_VECTOR_DB_PATH", "vector_store")
