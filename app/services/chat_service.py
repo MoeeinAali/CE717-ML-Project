@@ -1,8 +1,10 @@
 from sqlalchemy.orm import Session
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+from langfuse.callback import CallbackHandler
 
 from app.core.database import DBChatSession, DBChatMessage
 from app.services.rag_service import RAGService
+from app.core.config import LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY, LANGFUSE_HOST
 from app.core.logger import get_logger
 
 logger = get_logger(__name__)
@@ -50,7 +52,18 @@ async def generate_chat_response(query: str, session_id: str, db: Session, rag_s
         messages.append(HumanMessage(content=query))
 
         try:
-            response_message = llm.invoke(messages)
+            langfuse_handler = None
+            if LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY:
+                langfuse_handler = CallbackHandler(
+                    public_key=LANGFUSE_PUBLIC_KEY,
+                    secret_key=LANGFUSE_SECRET_KEY,
+                    host=LANGFUSE_HOST,
+                    session_id=session_id
+                )
+
+            config = {"callbacks": [
+                langfuse_handler]} if langfuse_handler else {}
+            response_message = llm.invoke(messages, config=config)
             response_text = response_message.content
             if docs:
                 sources = [doc.metadata for doc in docs]

@@ -22,3 +22,8 @@ RAG_VECTOR_DB_PATH = os.getenv("RAG_VECTOR_DB_PATH", "vector_store")
 RAG_EMBEDDING_MODEL = os.getenv(
     "RAG_EMBEDDING_MODEL", "text-embedding-3-large")
 RAG_SCORE_THRESHOLD = float(os.getenv("RAG_SCORE_THRESHOLD", "0.1"))
+
+# Langfuse Configuration
+LANGFUSE_PUBLIC_KEY = os.getenv("LANGFUSE_PUBLIC_KEY")
+LANGFUSE_SECRET_KEY = os.getenv("LANGFUSE_SECRET_KEY")
+LANGFUSE_HOST = os.getenv("LANGFUSE_HOST")
