@@ -1,4 +1,6 @@
 from fastapi import FastAPI, HTTPException, Depends
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import List, Optional, Dict
 import uuid
@@ -67,6 +69,25 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+
+from fastapi.responses import FileResponse
+import os
+
+# Enable CORS for widget text
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, specify domains
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Mount static files for the widget
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+@app.get("/")
+async def read_index():
+    return FileResponse('app/static/index.html')
 
 
 class ChatRequest(BaseModel):
