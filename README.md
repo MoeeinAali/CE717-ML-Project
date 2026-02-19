@@ -37,10 +37,10 @@ By leveraging **Retrieval-Augmented Generation (RAG)**, this chatbot provides ac
 ```mermaid
 graph TD
     subgraph "1. Data Acquisition"
-        A[Website (ac.sharif.edu)] -->|Crawler requests| B[HTML Fetcher]
+        A["Website (ac.sharif.edu)"] -->|Crawler requests| B[HTML Fetcher]
         B -->|BeautifulSoup| C[Content Parser]
         C -->|markdownify| D[Markdown Converter]
-        D -->|Save| E[Raw Data (data/*.md)]
+        D -->|Save| E["Raw Data (data/*.md)"]
     end
 
     subgraph "2. Data Processing & Indexing"
@@ -53,11 +53,16 @@ graph TD
     end
 
     subgraph "3. RAG Inference"
-        L[User Query] -->|Embed| M[Query Vector]
+        U1[Telegram Bot] --> L[User Query]
+        U2[Web Widget] --> L
+        U3[Swagger API] --> L
+        U4[Notebooks] --> L
+
+        L -->|Embed| M[Query Vector]
         M -->|Similarity Search| K
         K -->|Retrieve Top-K| N[Relevant Context]
         N & L -->|Augment Prompt| O[Contextualized Prompt]
-        O -->|LLM Interface| P[LLM (OpenAI/Ollama)]
+        O -->|LLM Interface| P["LLM (OpenAI/Ollama)"]
         P -->|Stream| Q[Final Answer + Citations]
     end
 
