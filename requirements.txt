@@ -1,9 +1,16 @@
 requests
 beautifulsoup4
 markdownify
+fastapi
+uvicorn
+pydantic
+sqlalchemy
 langchain
+langchain-core
 langchain-community
 langchain-openai
+langchain-ollama
+langchain-text-splitters
 faiss-cpu
 tiktoken
 python-dotenv

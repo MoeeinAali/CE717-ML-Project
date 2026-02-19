@@ -1,5 +1,4 @@
 import os
-import faiss
 from dotenv import load_dotenv
 from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings
@@ -26,7 +25,8 @@ class RAGService(object):
 
     def _initialize_system(self):
         try:
-            logger.info(f"Loading Embedding Model: {self.embedding_model_name}...")
+            logger.info(
+                f"Loading Embedding Model: {self.embedding_model_name}...")
             self.embeddings = OpenAIEmbeddings(
                 model=self.embedding_model_name,
                 check_embedding_ctx_length=False
@@ -63,7 +63,8 @@ class RAGService(object):
             docs = self.retriever.invoke(query)
 
             if not docs:
-                logger.info("No relevant documents found (similarity too low).")
+                logger.info(
+                    "No relevant documents found (similarity too low).")
                 return []
             return docs
 

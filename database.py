@@ -9,7 +9,6 @@ engine = create_engine(
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
-# Models
 class DBChatSession(Base):
     __tablename__ = "sessions"
     id = Column(String, primary_key=True, index=True)
@@ -20,7 +19,7 @@ class DBChatMessage(Base):
     __tablename__ = "messages"
     id = Column(Integer, primary_key=True, index=True)
     session_id = Column(String, ForeignKey("sessions.id"))
-    role = Column(String)  # 'user' or 'ai'
+    role = Column(String)  
     content = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
     session = relationship("DBChatSession", back_populates="messages")
