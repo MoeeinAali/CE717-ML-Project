@@ -200,9 +200,11 @@ Add the following script to your HTML file to include the chatbot widget:
 ## 📸 Gallery
 
 ### Web Widget
-| **Demo Video** |
+| **Demo** |
 |:---:|
-| <video src="figs/output.mp4" autoplay loop muted style="max-width: 100%;">Your browser does not support the video tag.</video> |
+| ![Widget](figs/output.gif) |
+<!-- |:---:|
+| <video src="figs/output.mp4" autoplay loop muted style="max-width: 100%;">Your browser does not support the video tag.</video> | -->
 
 ### Telegram Bot
 | **Bot Interaction** |
