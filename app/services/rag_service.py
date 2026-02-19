@@ -2,8 +2,8 @@ import os
 from dotenv import load_dotenv
 from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings
-from config import RAG_VECTOR_DB_PATH, RAG_EMBEDDING_MODEL, RAG_SCORE_THRESHOLD, RAG_K
-from logger import get_logger
+from app.core.config import RAG_VECTOR_DB_PATH, RAG_EMBEDDING_MODEL, RAG_SCORE_THRESHOLD, RAG_K
+from app.core.logger import get_logger
 
 logger = get_logger(__name__)
 

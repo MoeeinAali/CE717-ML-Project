@@ -11,11 +11,18 @@ from langchain_text_splitters import (
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 
+import sys
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if project_root not in sys.path:
+    sys.path.append(project_root)
+
+from app.core.config import RAG_EMBEDDING_MODEL, RAG_VECTOR_DB_PATH
+
 load_dotenv()
 
-DATA_DIR = "data"
-VECTOR_DB_DIR = "vector_store"
-EMBEDDING_MODEL_NAME = "text-embedding-3-large"
+DATA_DIR = os.path.join(project_root, "data")
+VECTOR_DB_DIR = os.path.join(project_root, RAG_VECTOR_DB_PATH)
+EMBEDDING_MODEL_NAME = RAG_EMBEDDING_MODEL
 
 
 def load_documents(data_dir):
@@ -97,11 +104,12 @@ def create_vector_db(chunks):
     print("Vector DB saved.")
 
 
-docs = load_documents(DATA_DIR)
+if __name__ == "__main__":
+    docs = load_documents(DATA_DIR)
 
-if docs:
-    print("Loaded:", len(docs))
-    chunks = split_documents(docs)
-    create_vector_db(chunks)
-else:
-    print("No documents found.")
+    if docs:
+        print("Loaded:", len(docs))
+        chunks = split_documents(docs)
+        create_vector_db(chunks)
+    else:
+        print("No documents found.")

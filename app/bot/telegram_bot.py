@@ -1,9 +1,9 @@
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
-from config import TELEGRAM_BOT_TOKEN
-from chat_service import generate_chat_response
-from database import SessionLocal
-from logger import get_logger
+from app.core.config import TELEGRAM_BOT_TOKEN
+from app.services.chat_service import generate_chat_response
+from app.core.database import SessionLocal
+from app.core.logger import get_logger
 
 logger = get_logger(__name__)
 

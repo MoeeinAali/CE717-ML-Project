@@ -7,7 +7,6 @@ SQLALCHEMY_DATABASE_URL = os.getenv(
     "DATABASE_URL", "sqlite:///./chat_history.db")
 
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "openai")
-
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:7b-instruct")
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
 

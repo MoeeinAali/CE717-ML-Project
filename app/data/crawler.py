@@ -11,7 +11,9 @@ SHARIF_AC_MOTHER_LINKS = [
     "https://ac.sharif.edu/rules/"
 ]
 
-DOWNLOAD_DIR = "data"
+project_root = os.path.dirname(os.path.dirname(
+    os.path.dirname(os.path.abspath(__file__))))
+DOWNLOAD_DIR = os.path.join(project_root, "data")
 
 
 def download_and_convert_rule(url, title, edit_date):
@@ -59,39 +61,40 @@ def download_and_convert_rule(url, title, edit_date):
         print(f"Failed to process {url}: {e}")
 
 
-if not os.path.exists(DOWNLOAD_DIR):
-    os.makedirs(DOWNLOAD_DIR)
+if __name__ == "__main__":
+    if not os.path.exists(DOWNLOAD_DIR):
+        os.makedirs(DOWNLOAD_DIR)
 
-for base_url in SHARIF_AC_MOTHER_LINKS:
-    try:
-        response = requests.get(base_url)
-        response.raise_for_status()
-        soup = BeautifulSoup(response.text, 'html.parser')
+    for base_url in SHARIF_AC_MOTHER_LINKS:
+        try:
+            response = requests.get(base_url)
+            response.raise_for_status()
+            soup = BeautifulSoup(response.text, 'html.parser')
 
-        table = soup.find('table', class_='dataplugin_table')
+            table = soup.find('table', class_='dataplugin_table')
 
-        rows = table.find_all('tr')
+            rows = table.find_all('tr')
 
-        for row in rows[1:]:
-            cells = row.find_all('td')
-            if not cells:
-                continue
+            for row in rows[1:]:
+                cells = row.find_all('td')
+                if not cells:
+                    continue
 
-            first_cell = cells[0]
-            link_tag = first_cell.find('a')
+                first_cell = cells[0]
+                link_tag = first_cell.find('a')
 
-            if link_tag and 'href' in link_tag.attrs:
-                href = link_tag['href']
-                title = link_tag.get_text(strip=True)
-                full_url = urljoin(base_url, href)
+                if link_tag and 'href' in link_tag.attrs:
+                    href = link_tag['href']
+                    title = link_tag.get_text(strip=True)
+                    full_url = urljoin(base_url, href)
 
-                date_cell = cells[1] if len(cells) > 1 else None
-                edit_date = date_cell.get_text(
-                    strip=True) if date_cell else "Unknown"
+                    date_cell = cells[1] if len(cells) > 1 else None
+                    edit_date = date_cell.get_text(
+                        strip=True) if date_cell else "Unknown"
 
-                print(f"Found Rule: {title} ({edit_date}) -> {full_url}")
+                    print(f"Found Rule: {title} ({edit_date}) -> {full_url}")
 
-                download_and_convert_rule(full_url, title, edit_date)
+                    download_and_convert_rule(full_url, title, edit_date)
 
-    except Exception as e:
-        print(f"Error crawling {base_url}: {e}")
+        except Exception as e:
+            print(f"Error crawling {base_url}: {e}")

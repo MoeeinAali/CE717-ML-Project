@@ -1,9 +1,9 @@
 from sqlalchemy.orm import Session
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 
-from database import DBChatSession, DBChatMessage
-from rag_service import RAGService
-from logger import get_logger
+from app.core.database import DBChatSession, DBChatMessage
+from app.services.rag_service import RAGService
+from app.core.logger import get_logger
 
 logger = get_logger(__name__)
 

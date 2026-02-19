@@ -6,16 +6,16 @@ from sqlalchemy.orm import Session
 from langchain_ollama import ChatOllama
 from langchain_openai import ChatOpenAI
 
-from rag_service import RAGService
-from database import DBChatSession, get_db, init_db
-from config import (
+from app.services.rag_service import RAGService
+from app.core.database import DBChatSession, get_db, init_db
+from app.core.config import (
     LLM_PROVIDER, OLLAMA_MODEL, OLLAMA_BASE_URL,
     OPENAI_API_KEY, OPENAI_MODEL, LLM_TEMPERATURE
 )
-from chat_service import generate_chat_response
-from telegram_bot import create_bot_app
+from app.services.chat_service import generate_chat_response
+from app.bot.telegram_bot import create_bot_app
 from contextlib import asynccontextmanager
-from logger import get_logger
+from app.core.logger import get_logger
 
 logger = get_logger(__name__)
 
