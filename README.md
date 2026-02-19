@@ -192,7 +192,29 @@ Add the following script to your HTML file to include the chatbot widget:
 
 ## 🧪 Testing
 - Check `test-notebook.ipynb` for running sample queries and evaluating the RAG performance interactively.
-
 - Send a POST request to chat endpoint. use `/docs` swagger API documentations.
-
 - Send your question to Telegram-Bot.
+
+---
+
+## 📸 Gallery
+
+### Web Widget
+| **Demo Video** |
+|:---:|
+| <video src="figs/output.mp4" autoplay loop muted style="max-width: 100%;">Your browser does not support the video tag.</video> |
+
+### Telegram Bot
+| **Bot Interaction** |
+|:---:|
+| ![Telegram Bot](figs/bot_1.png) |
+
+### Langfuse Observability
+**Cost Dashboard** | **Home Page** |
+|:---:|:---:|
+| ![Langfuse List](figs/langfuse_1.png) | ![Langfuse Detail](figs/langfuse_2.png) |
+
+### Development Tools
+| **Swagger UI** | **Jupyter Notebook** |
+|:---:|:---:|
+| ![Swagger](figs/swagger_1.png) | ![Notebook](figs/notebook_1.png) |
