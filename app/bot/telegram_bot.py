@@ -9,7 +9,7 @@ logger = get_logger(__name__)
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Hello! I am your RAG Chatbot for the Sharif University of Technology. Ask me anything about educational regulations.")
+    await update.message.reply_text("سلام! من دستیار هوشمند دانشگاه صنعتی شریف هستم. هر سوالی در مورد آیین‌نامه‌ها و مقررات آموزشی دارید، بپرسید.")
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -37,20 +37,35 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
 
             if sources:
-                response_text += "\n\n📚 **Sources:**"
+                response_text += "\n\n📚 **منابع:**"
+
+                seen_urls = set()
+                unique_sources = []
+
+                for source in sources:
+                    url = source.get('url')
+                    if url and url not in seen_urls:
+                        seen_urls.add(url)
+                        unique_sources.append(source)
+                    elif not url:
+                        pass
 
                 seen_titles = set()
-                unique_sources = []
+                display_sources = []
 
                 for source in sources:
                     title = source.get('title', 'Unknown Source')
                     if title not in seen_titles:
                         seen_titles.add(title)
-                        unique_sources.append(source)
+                        display_sources.append(source)
 
-                for i, source in enumerate(unique_sources[:3], 1):
+                for i, source in enumerate(display_sources[:5], 1):
                     title = source.get('title', 'Unknown Source')
-                    response_text += f"\n{i}. {title}"
+                    url = source.get('url')
+                    if url:
+                        response_text += f"\n{i}. [{title}]({url})"
+                    else:
+                        response_text += f"\n{i}. {title}"
 
             await update.message.reply_text(response_text, parse_mode='Markdown')
 

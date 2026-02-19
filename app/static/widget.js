@@ -159,16 +159,54 @@
             background-color: rgba(255,255,255,0.2);
             border-radius: 3px;
         }
+        
+        .message-container {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+            max-width: 90%;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .message-container.user {
+            align-self: flex-start;
+            flex-direction: row;
+        }
+
+        .message-container.bot {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            color: white;
+            font-size: 18px;
+        }
+
+        .avatar.bot {
+            background: var(--primary-gradient);
+            border: 1px solid var(--glass-border);
+        }
+
+        .avatar.user {
+            background: #ffaa00; /* Warm color for user */
+        }
 
         .message {
-            max-width: 85%;
             padding: 12px 18px;
             border-radius: 18px;
             font-size: 14px;
             line-height: 1.6;
             position: relative;
             word-wrap: break-word;
-            animation: fadeIn 0.3s ease;
         }
 
         @keyframes fadeIn {
@@ -178,8 +216,8 @@
 
         .message.bot {
             background: var(--bot-bg);
-            align-self: flex-start;
-            border-top-right-radius: 4px;
+            border-top-right-radius: 18px;
+            border-bottom-left-radius: 4px;
             color: var(--text-primary);
             border: 1px solid var(--glass-border);
         }
@@ -187,8 +225,8 @@
         .message.user {
             background: var(--user-bg);
             color: white;
-            align-self: flex-end;
-            border-top-left-radius: 4px;
+            border-top-left-radius: 18px;
+            border-bottom-right-radius: 4px;
             box-shadow: 0 4px 15px rgba(0, 82, 204, 0.3);
         }
 
@@ -236,6 +274,10 @@
             justify-content: center;
             transition: transform 0.2s;
             box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        #send-btn svg {
+            scale: 2;
         }
 
         #send-btn:hover {
@@ -327,9 +369,14 @@
                 <button class="close-btn">&times;</button>
             </div>
             <div class="chat-messages" id="chat-messages">
-                <div class="message bot">
-                    سلام! 👋 <br>
-                    من دستیار هوشمند قوانین آموزشی دانشگاه شریف هستم. هر سوالی در مورد آیین‌نامه‌ها داری بپرس.
+                <div class="message-container bot">
+                     <div class="avatar bot">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path><line x1="8" y1="16" x2="8" y2="16"></line><line x1="16" y1="16" x2="16" y2="16"></line></svg>
+                    </div>
+                    <div class="message bot">
+                        سلام! 👋 <br>
+                        من دستیار هوشمند قوانین آموزشی دانشگاه شریف هستم. هر سوالی در مورد آیین‌نامه‌ها داری بپرس.
+                    </div>
                 </div>
             </div>
             <div class="typing-indicator" id="typing-indicator">
@@ -372,6 +419,19 @@
   closeBtn.addEventListener("click", toggleChat);
 
   function addMessage(text, type, sources = []) {
+    const container = document.createElement("div");
+    container.className = `message-container ${type}`;
+
+    // Avatar
+    const avatar = document.createElement("div");
+    avatar.className = `avatar ${type}`;
+
+    if (type === "bot") {
+      avatar.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path><line x1="8" y1="16" x2="8" y2="16"></line><line x1="16" y1="16" x2="16" y2="16"></line></svg>`;
+    } else {
+      avatar.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`;
+    }
+
     const msgDiv = document.createElement("div");
     msgDiv.className = `message ${type}`;
 
@@ -393,7 +453,8 @@
       sources.forEach((source) => {
         const link = document.createElement("a");
         link.className = "source-link";
-        link.href = "#"; // Or actual link if available
+        link.href = source.url || "#";
+        link.target = "_blank";
         link.textContent = `- ${source.title || "Unknown Source"}`;
         link.title = source.title; // Tooltip
         sourcesDiv.appendChild(link);
@@ -401,7 +462,10 @@
       msgDiv.appendChild(sourcesDiv);
     }
 
-    messagesContainer.appendChild(msgDiv);
+    container.appendChild(avatar);
+    container.appendChild(msgDiv);
+
+    messagesContainer.appendChild(container);
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
   }
 
